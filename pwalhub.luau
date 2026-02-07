@@ -1,4 +1,4 @@
---================ FULL MODERN PWAL'S HUB WITH FLY INDICATOR ===================
+--================ FULL MODERN PWAL'S HUB WITH FULL UNLOAD ===================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -236,6 +236,8 @@ end
 rebuildTeleportsList()
 
 --================ OTHER TAB ===================
+local connections = {} -- Store all connections for proper unload
+
 local function createInputField(labelText, yPos, callback)
     local lbl = Instance.new("TextLabel", otherFrame)
     lbl.Size = UDim2.new(0.4,0,0,30)
@@ -258,14 +260,14 @@ local function createInputField(labelText, yPos, callback)
     local corner = Instance.new("UICorner", input)
     corner.CornerRadius = UDim.new(0,5)
 
-    input.FocusLost:Connect(function(enterPressed)
+    table.insert(connections,input.FocusLost:Connect(function(enterPressed)
         if enterPressed then
             local val = tonumber(input.Text)
             if val then
                 callback(val)
             end
         end
-    end)
+    end))
 end
 
 createInputField("Jump Strength", 10, function(val)
@@ -341,14 +343,25 @@ unloadBtn.MouseButton1Click:Connect(function()
     local cornerC = Instance.new("UICorner", confirmBtn)
     cornerC.CornerRadius = UDim.new(0,8)
     confirmBtn.MouseButton1Click:Connect(function()
-        gui:Destroy()
+        -- Disconnect all stored connections
+        for _, conn in pairs(connections) do
+            if conn and conn.Disconnect then
+                conn:Disconnect()
+            end
+        end
+        connections = {}
+
+        -- Destroy fly object
         if bv then bv:Destroy() end
         flying = false
+
+        -- Destroy GUI
+        gui:Destroy()
     end)
 end)
 
 --================ KEYBINDS ===================
-UserInputService.InputBegan:Connect(function(input,gameProcessed)
+table.insert(connections, UserInputService.InputBegan:Connect(function(input,gameProcessed)
     if not gameProcessed then
         if input.KeyCode == Enum.KeyCode.Z then
             flying = not flying
@@ -371,10 +384,10 @@ UserInputService.InputBegan:Connect(function(input,gameProcessed)
             frame.Visible = not frame.Visible
         end
     end
-end)
+end))
 
 --================ FLY MOVEMENT ===================
-RunService.RenderStepped:Connect(function()
+table.insert(connections, RunService.RenderStepped:Connect(function()
     if flying and bv then
         local root=getRoot()
         if root then
@@ -390,4 +403,4 @@ RunService.RenderStepped:Connect(function()
             bv.Velocity=dir*flySpeed
         end
     end
-end)
+end))
