@@ -1,17 +1,19 @@
---================ FULL PWAL'S HUB SCRIPT ===================
+--================== PWAL'S HUB EXECUTOR VERSION ==================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-if not player then return end
+repeat task.wait() until player and player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+local char = player.Character
+local root = char:WaitForChild("HumanoidRootPart")
 
---================ GUI ===================
+--================== GUI ==================
 local gui = Instance.new("ScreenGui")
 gui.Name = "PWALS_HUB"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = game:GetService("CoreGui") -- Executor safe
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0,450,0,500)
@@ -21,10 +23,8 @@ frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.ClipsDescendants = true
-local frameCorner = Instance.new("UICorner", frame)
-frameCorner.CornerRadius = UDim.new(0,15)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,15)
 
--- Title
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,50)
 title.Position = UDim2.new(0,0,0,0)
@@ -34,7 +34,7 @@ title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 
---================ TAB BUTTONS ===================
+--================== TAB BUTTONS ==================
 local tabFrame = Instance.new("Frame", frame)
 tabFrame.Size = UDim2.new(1,0,0,40)
 tabFrame.Position = UDim2.new(0,0,0,50)
@@ -58,25 +58,23 @@ local function createTabButton(text, position)
 end
 
 local customTPBtn = createTabButton("Custom TP", UDim2.new(0,0,0,0))
-local tpBtnTab = createTabButton("TP", UDim2.new(1/3,0,0,0))
+local tpBtnTab    = createTabButton("TP", UDim2.new(1/3,0,0,0))
 local otherTabBtn = createTabButton("Other", UDim2.new(2/3,0,0,0))
 
---================ TAB FRAMES ===================
+--================== TAB FRAMES ==================
 local function createTabFrame()
     local f = Instance.new("Frame", frame)
     f.Size = UDim2.new(1,-20,1,-110)
     f.Position = UDim2.new(0,10,0,95)
     f.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    local corner = Instance.new("UICorner", f)
-    corner.CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
     return f
 end
 
 local customTPFrame = createTabFrame()
-local tpFrame = createTabFrame()
-local otherFrame = createTabFrame()
+local tpFrame       = createTabFrame()
+local otherFrame    = createTabFrame()
 
--- Scrollable lists
 local function createScroll(frame, yOffset)
     local scroll = Instance.new("ScrollingFrame", frame)
     scroll.Size = UDim2.new(1,-10,1,-(yOffset+10))
@@ -91,13 +89,13 @@ local function createScroll(frame, yOffset)
 end
 
 local newListFrame = createScroll(customTPFrame,60)
-local listFrame = createScroll(tpFrame,0)
+local listFrame    = createScroll(tpFrame,0)
 
---================ DATA ===================
+--================== DATA ==================
 local userWaypoints = {}
 local waypoints = {
     Selling = {
-        {Name="Plot1", Pos=Vector3.new(1570,30,-477)}, -- New top button
+        {Name="Plot1", Pos=Vector3.new(1570,30,-477)},
         {Name="Trees/Ores",Pos=Vector3.new(937,29,-695),Permanent=true},
         {Name="Fishes",Pos=Vector3.new(1635,3,-1271),Permanent=true},
         {Name="Enchant",Pos=Vector3.new(-1855,-650,2268)},
@@ -121,26 +119,13 @@ local waypoints = {
     }
 }
 
---================ FLY VARIABLES ===================
-local flying = false
-local flySpeed = 50
-local bv
-local renderConn, inputConn
-
---================ FUNCTIONS ===================
-local function getRoot()
-    local char = player.Character or player.CharacterAdded:Wait()
-    return char:WaitForChild("HumanoidRootPart")
-end
-
+--================== FUNCTIONS ==================
 local function smoothTP(pos)
-    local root = getRoot()
     root.CFrame = CFrame.new(pos + Vector3.new(0,3,0))
 end
 
---================ TAB SLIDES ===================
 local function slideTab(tabFrame, targetX)
-    TweenService:Create(tabFrame,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Position=UDim2.new(targetX,10,0,95)}):Play()
+    TweenService:Create(tabFrame,TweenInfo.new(0.3),{Position=UDim2.new(targetX,10,0,95)}):Play()
 end
 
 customTPBtn.MouseButton1Click:Connect(function()
@@ -159,23 +144,19 @@ otherTabBtn.MouseButton1Click:Connect(function()
     slideTab(otherFrame,0)
 end)
 
---================ CUSTOM TP TAB ===================
+--================== CUSTOM TP ==================
 local function rebuildUserList()
-    for _,c in pairs(newListFrame:GetChildren()) do
-        if c:IsA("TextButton") then c:Destroy() end
-    end
+    for _,c in pairs(newListFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
     for i,wp in ipairs(userWaypoints) do
         local b = Instance.new("TextButton", newListFrame)
         b.Size = UDim2.new(1,0,0,40)
         b.BackgroundColor3 = Color3.fromRGB(50,50,60)
         b.TextColor3 = Color3.fromRGB(0,255,255)
-        local pos = wp.Pos
-        b.Text = wp.Name.." ("..math.floor(pos.X)..","..math.floor(pos.Y)..","..math.floor(pos.Z)..")"
+        b.Text = wp.Name.." ("..math.floor(wp.Pos.X)..","..math.floor(wp.Pos.Y)..","..math.floor(wp.Pos.Z)..")"
         b.Font = Enum.Font.GothamBold
         b.TextScaled = true
         b.BorderSizePixel = 0
-        local corner = Instance.new("UICorner", b)
-        corner.CornerRadius = UDim.new(0,8)
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
         b.MouseButton1Click:Connect(function() smoothTP(wp.Pos) end)
         b.MouseButton2Click:Connect(function()
             table.remove(userWaypoints,i)
@@ -192,8 +173,7 @@ saveBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
 saveBtn.TextColor3 = Color3.new(1,1,1)
 saveBtn.Font = Enum.Font.GothamBold
 saveBtn.TextScaled = true
-local corner = Instance.new("UICorner", saveBtn)
-corner.CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0,8)
 
 local tpBtnCustom = Instance.new("TextButton", customTPFrame)
 tpBtnCustom.Size = UDim2.new(0.45,-5,0,50)
@@ -203,28 +183,22 @@ tpBtnCustom.BackgroundColor3 = Color3.fromRGB(60,60,70)
 tpBtnCustom.TextColor3 = Color3.new(1,1,1)
 tpBtnCustom.Font = Enum.Font.GothamBold
 tpBtnCustom.TextScaled = true
-local corner2 = Instance.new("UICorner", tpBtnCustom)
-corner2.CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", tpBtnCustom).CornerRadius = UDim.new(0,8)
 
 saveBtn.MouseButton1Click:Connect(function()
-    local pos = getRoot().Position
-    table.insert(userWaypoints,{Name="WP "..#userWaypoints+1, Pos=pos})
+    table.insert(userWaypoints,{Name="WP "..#userWaypoints+1,Pos=root.Position})
     rebuildUserList()
     saveBtn.Text = "Saved!"
     task.wait(0.8)
     saveBtn.Text = "Save Position"
 end)
-
 tpBtnCustom.MouseButton1Click:Connect(function()
-    if #userWaypoints==0 then return end
-    smoothTP(userWaypoints[#userWaypoints].Pos)
+    if #userWaypoints>0 then smoothTP(userWaypoints[#userWaypoints].Pos) end
 end)
 
---================ TP TAB ===================
+--================== TP TAB ==================
 local function rebuildTeleportsList()
-    for _,c in pairs(listFrame:GetChildren()) do
-        if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end
-    end
+    for _,c in pairs(listFrame:GetChildren()) do if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end end
     for cat,wps in pairs(waypoints) do
         local catLabel = Instance.new("TextLabel", listFrame)
         catLabel.Size = UDim2.new(1,0,0,30)
@@ -233,40 +207,29 @@ local function rebuildTeleportsList()
         catLabel.Font = Enum.Font.GothamBold
         catLabel.TextColor3 = Color3.fromRGB(200,200,200)
         catLabel.TextScaled = true
-        local corner = Instance.new("UICorner", catLabel)
-        corner.CornerRadius = UDim.new(0,10)
+        Instance.new("UICorner", catLabel).CornerRadius = UDim.new(0,10)
         for _,wp in ipairs(wps) do
             local b = Instance.new("TextButton", listFrame)
             b.Size = UDim2.new(1,0,0,35)
             b.BackgroundColor3 = Color3.fromRGB(50,50,60)
             if cat=="Selling" then
-                if wp.Name=="Enchant" then
-                    b.TextColor3 = Color3.fromRGB(0,255,0)
-                elseif wp.Name=="Plot1" then
-                    b.TextColor3 = Color3.fromRGB(0,255,0)
-                else
-                    b.TextColor3 = Color3.fromRGB(255,165,0)
-                end
-            elseif cat=="Mining" then
-                b.TextColor3 = Color3.fromRGB(0,170,255)
-            elseif cat=="Shops" then
-                b.TextColor3 = Color3.fromRGB(255,0,0)
-            else
-                b.TextColor3 = Color3.new(1,1,1)
-            end
+                if wp.Name=="Enchant" or wp.Name=="Plot1" then b.TextColor3 = Color3.fromRGB(0,255,0)
+                else b.TextColor3 = Color3.fromRGB(255,165,0) end
+            elseif cat=="Mining" then b.TextColor3 = Color3.fromRGB(0,170,255)
+            elseif cat=="Shops" then b.TextColor3 = Color3.fromRGB(255,0,0)
+            else b.TextColor3 = Color3.new(1,1,1) end
             b.Text = wp.Name
             b.Font = Enum.Font.GothamBold
             b.TextScaled = true
             b.BorderSizePixel = 0
-            local corner2 = Instance.new("UICorner", b)
-            corner2.CornerRadius = UDim.new(0,8)
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
             b.MouseButton1Click:Connect(function() smoothTP(wp.Pos) end)
         end
     end
 end
 rebuildTeleportsList()
 
---================ OTHER TAB ===================
+--================== OTHER TAB ==================
 local flyLabel = Instance.new("TextLabel", otherFrame)
 flyLabel.Size = UDim2.new(0.4,0,0,30)
 flyLabel.Position = UDim2.new(0,5,0,5)
@@ -280,12 +243,20 @@ local flyInstr = Instance.new("TextLabel", otherFrame)
 flyInstr.Size = UDim2.new(1,0,0,20)
 flyInstr.Position = UDim2.new(0,5,0,40)
 flyInstr.BackgroundTransparency = 1
-flyInstr.Text = "Fly (Z) | Show/Hide GUI (Insert)"
+flyInstr.Text = "Fly (Z) | Show/Hide GUI (P)"
 flyInstr.TextColor3 = Color3.fromRGB(200,200,200)
 flyInstr.Font = Enum.Font.Gotham
 flyInstr.TextScaled = true
 
--- Jump, Walk, Fly inputs
+local tpLastLabel = Instance.new("TextLabel", otherFrame)
+tpLastLabel.Size = UDim2.new(1,0,0,20)
+tpLastLabel.Position = UDim2.new(0,5,0,65)
+tpLastLabel.BackgroundTransparency = 1
+tpLastLabel.Text = "TP to last (M)"
+tpLastLabel.TextColor3 = Color3.fromRGB(200,200,200)
+tpLastLabel.Font = Enum.Font.Gotham
+tpLastLabel.TextScaled = true
+
 local function createInputLabel(name,posY,default)
     local lbl = Instance.new("TextLabel", otherFrame)
     lbl.Size = UDim2.new(0.4,0,0,25)
@@ -304,107 +275,75 @@ local function createInputLabel(name,posY,default)
     input.Text = tostring(default)
     input.Font = Enum.Font.Gotham
     input.TextScaled = true
-    local corner = Instance.new("UICorner", input)
-    corner.CornerRadius = UDim.new(0,5)
+    Instance.new("UICorner", input).CornerRadius = UDim.new(0,5)
     return input
 end
 
-local jumpInput = createInputLabel("Jump Strength",70,20)
-local walkInput = createInputLabel("Walk Speed",110,20)
-local flyInput = createInputLabel("Fly Speed",150,50)
+local jumpInput = createInputLabel("Jump Strength",90,50)
+local walkInput = createInputLabel("Walk Speed",130,16)
+local flyInput  = createInputLabel("Fly Speed",170,50)
 
 jumpInput.FocusLost:Connect(function(enter)
-    if enter then
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            local val = tonumber(jumpInput.Text)
-            if val then hum.JumpPower = val end
-        end
-    end
+    if enter and char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then local val = tonumber(jumpInput.Text) if val then hum.JumpPower = val end end end
 end)
 walkInput.FocusLost:Connect(function(enter)
-    if enter then
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            local val = tonumber(walkInput.Text)
-            if val then hum.WalkSpeed = val end
-        end
-    end
+    if enter and char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then local val = tonumber(walkInput.Text) if val then hum.WalkSpeed = val end end end
 end)
 flyInput.FocusLost:Connect(function(enter)
-    if enter then
-        local val = tonumber(flyInput.Text)
-        if val then flySpeed = val end
-    end
+    if enter then local val = tonumber(flyInput.Text) if val then flySpeed = val end end
 end)
 
--- Discord link
-local discordLabel = Instance.new("TextLabel", otherFrame)
-discordLabel.Size = UDim2.new(1,0,0,25)
-discordLabel.Position = UDim2.new(0,0,1,-30)
-discordLabel.BackgroundTransparency = 1
-discordLabel.Text = "https://discord.com/invite/R3Gn628ADd"
-discordLabel.TextColor3 = Color3.fromRGB(100,255,100)
-discordLabel.Font = Enum.Font.GothamBold
-discordLabel.TextScaled = true
-discordLabel.TextStrokeTransparency = 0.7
-discordLabel.TextXAlignment = Enum.TextXAlignment.Center
-
--- Terminate Script button
 local terminateBtn = Instance.new("TextButton", otherFrame)
 terminateBtn.Size = UDim2.new(0.6,0,0,40)
-terminateBtn.Position = UDim2.new(0.2,0,0,200)
+terminateBtn.Position = UDim2.new(0.2,0,0,220)
 terminateBtn.Text = "Terminate Script"
 terminateBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 terminateBtn.TextColor3 = Color3.new(1,1,1)
 terminateBtn.Font = Enum.Font.GothamBold
 terminateBtn.TextScaled = true
-local cornerT = Instance.new("UICorner", terminateBtn)
-cornerT.CornerRadius = UDim.new(0,10)
-
+Instance.new("UICorner", terminateBtn).CornerRadius = UDim.new(0,10)
 terminateBtn.MouseButton1Click:Connect(function()
     frame.Visible = false
-    if bv then bv:Destroy() end
-    if renderConn then renderConn:Disconnect() end
-    if inputConn then inputConn:Disconnect() end
 end)
 
---================ FLY & GUI TOGGLE ===================
-inputConn = UserInputService.InputBegan:Connect(function(input,gp)
+--================== FLY & HOTKEYS ==================
+local flying = false
+local flySpeed = 50
+local bv
+
+UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
-    if input.KeyCode==Enum.KeyCode.Z then
+    if input.KeyCode == Enum.KeyCode.Z then
         flying = not flying
         flyLabel.Text = "Fly: "..(flying and "ON" or "OFF")
         if flying then
-            local root = getRoot()
-            bv = Instance.new("BodyVelocity",root)
+            bv = Instance.new("BodyVelocity")
             bv.MaxForce = Vector3.new(1e5,1e5,1e5)
             bv.Velocity = Vector3.new(0,0,0)
+            bv.Parent = root
         else
             if bv then bv:Destroy() end
         end
-    elseif input.KeyCode==Enum.KeyCode.Insert then
+    elseif input.KeyCode == Enum.KeyCode.M then
+        if #userWaypoints>0 then smoothTP(userWaypoints[#userWaypoints].Pos) end
+    elseif input.KeyCode == Enum.KeyCode.P then
         frame.Visible = not frame.Visible
     end
 end)
 
-renderConn = RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     if flying and bv then
-        local root = getRoot()
         local cam = workspace.CurrentCamera
-        local direction = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - cam.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + cam.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction = direction + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then direction = direction - Vector3.new(0,1,0) end
-        if direction.Magnitude > 0 then
-            bv.Velocity = direction.Unit*flySpeed
-        else
-            bv.Velocity = Vector3.new(0,0,0)
-        end
+        local move = Vector3.new()
+        local keys = UserInputService.IsKeyDown
+        if keys(UserInputService,Enum.KeyCode.W) then move = move + cam.CFrame.LookVector end
+        if keys(UserInputService,Enum.KeyCode.S) then move = move - cam.CFrame.LookVector end
+        if keys(UserInputService,Enum.KeyCode.A) then move = move - cam.CFrame.RightVector end
+        if keys(UserInputService,Enum.KeyCode.D) then move = move + cam.CFrame.RightVector end
+        if keys(UserInputService,Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+        if keys(UserInputService,Enum.KeyCode.LeftShift) then move = move - Vector3.new(0,1,0) end
+        bv.Velocity = (move.Magnitude>0) and move.Unit*flySpeed or Vector3.new(0,0,0)
     end
 end)
 
-print("PWAL'S HUB ready with instant teleport, Plot1 button on top, and full Other tab!")
+print("PWAL'S HUB LOADED - 3 Tabs | Fly: Z | GUI: P | TP Last: M")
