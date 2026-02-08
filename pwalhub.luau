@@ -97,9 +97,10 @@ local listFrame = createScroll(tpFrame,0)
 local userWaypoints = {}
 local waypoints = {
     Selling = {
+        {Name="Plot1", Pos=Vector3.new(1570,30,-477)}, -- New top button
         {Name="Trees/Ores",Pos=Vector3.new(937,29,-695),Permanent=true},
         {Name="Fishes",Pos=Vector3.new(1635,3,-1271),Permanent=true},
-        {Name="Enchant",Pos=Vector3.new(-1855,-650,2268)}, -- green
+        {Name="Enchant",Pos=Vector3.new(-1855,-650,2268)},
     },
     Mining = {
         {Name="Cobalt",Pos=Vector3.new(279,-120,3394),Permanent=true},
@@ -134,9 +135,7 @@ end
 
 local function smoothTP(pos)
     local root = getRoot()
-    local dist = (root.Position - pos).Magnitude
-    local t = math.clamp(dist/70,0.15,2)
-    TweenService:Create(root,TweenInfo.new(t,Enum.EasingStyle.Linear),{CFrame=CFrame.new(pos+Vector3.new(0,3,0))}):Play()
+    root.CFrame = CFrame.new(pos + Vector3.new(0,3,0))
 end
 
 --================ TAB SLIDES ===================
@@ -242,6 +241,8 @@ local function rebuildTeleportsList()
             b.BackgroundColor3 = Color3.fromRGB(50,50,60)
             if cat=="Selling" then
                 if wp.Name=="Enchant" then
+                    b.TextColor3 = Color3.fromRGB(0,255,0)
+                elseif wp.Name=="Plot1" then
                     b.TextColor3 = Color3.fromRGB(0,255,0)
                 else
                     b.TextColor3 = Color3.fromRGB(255,165,0)
@@ -406,4 +407,4 @@ renderConn = RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("PWAL'S HUB ready with Enchant teleport and Terminate Script button!")
+print("PWAL'S HUB ready with instant teleport, Plot1 button on top, and full Other tab!")
